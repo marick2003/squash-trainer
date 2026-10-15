@@ -4,9 +4,12 @@ import { Activity, Info, Pause, Play, RotateCcw, Volume2, VolumeX } from 'lucide
 import CourtView from './components/CourtView.vue'
 import GuideModal from './components/GuideModal.vue'
 import TrainingSettings from './components/TrainingSettings.vue'
+import VoiceSettings from './components/VoiceSettings.vue'
 import { useTraining } from './composables/useTraining'
 
 const training = useTraining()
+const voice = training.voice
+const voiceLabel = computed(() => (voice.gender.value, voice.voices.value, voice.voiceLabel()))
 const shotDisplay = computed(() => `${training.currentShot.value} / ${training.shotsPerSet.value}`)
 const setDisplay = computed(() => `${training.currentSet.value} / ${training.totalSets.value}`)
 const toneClasses = computed(() => ({
@@ -16,6 +19,12 @@ const toneClasses = computed(() => ({
 
 function toggleSound() {
   training.soundEnabled.value = !training.soundEnabled.value
+  if (!training.soundEnabled.value) voice.cancel()
+}
+
+function setGender(gender) {
+  voice.gender.value = gender
+  voice.speak(gender === 'male' ? '男聲，前左' : '女聲，前左')
 }
 </script>
 
@@ -79,6 +88,19 @@ function toggleSound() {
           @update:total-sets="training.totalSets.value = $event"
           @update:split-warning="training.splitWarning.value = $event"
           @preset="training.applyPreset"
+        />
+
+        <VoiceSettings
+          :voice-enabled="voice.voiceEnabled.value"
+          :gender="voice.gender.value"
+          :volume="voice.volume.value"
+          :rate="voice.rate.value"
+          :label="voiceLabel"
+          @update:voice-enabled="voice.voiceEnabled.value = $event; if (!$event) voice.cancel()"
+          @update:gender="setGender"
+          @update:volume="voice.volume.value = $event"
+          @update:rate="voice.rate.value = $event"
+          @test="voice.speak('前左，後右，中左')"
         />
 
         <section class="rounded-lg border border-white/8 bg-[#161d19] p-4 sm:p-5">

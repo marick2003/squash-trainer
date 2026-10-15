@@ -1,5 +1,6 @@
 import { computed, onBeforeUnmount, reactive, ref } from 'vue'
 import { corners as cornerDefaults } from '../data/corners'
+import { useVoice } from './useVoice'
 
 const idleStatus = {
   phase: '待機準備',
@@ -26,6 +27,11 @@ export function useTraining() {
   const status = reactive({ ...idleStatus })
   const activeCorners = computed(() => corners.filter((corner) => corner.active))
   const currentTotal = computed(() => totalSets.value * shotsPerSet.value)
+  const voice = useVoice()
+
+  function say(text) {
+    if (soundEnabled.value) voice.speak(text)
+  }
 
   let audioContext
   let mainTimer
@@ -50,7 +56,7 @@ export function useTraining() {
       const gain = audioContext.createGain()
       oscillator.type = type
       oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime)
-      gain.gain.setValueAtTime(volume, audioContext.currentTime)
+      gain.gain.setValueAtTime(Math.max(0.0011, volume * voice.volume.value * 1.25), audioContext.currentTime)
       gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration)
       oscillator.connect(gain)
       gain.connect(audioContext.destination)
@@ -88,11 +94,13 @@ export function useTraining() {
     let remaining = seconds
     setStatus('倒數準備', `站上 T 點... ${remaining}`, '調整呼吸，重心下沉預備', 'amber')
     tone(440, 0.1, 0.2)
+    say(String(remaining))
     intervalTimer = setInterval(() => {
       remaining -= 1
       if (remaining > 0) {
         setStatus('倒數準備', `站上 T 點... ${remaining}`, '調整呼吸，重心下沉預備', 'amber')
         tone(440, 0.1, 0.2)
+        say(String(remaining))
       } else {
         clearInterval(intervalTimer)
         intervalTimer = undefined
@@ -122,6 +130,7 @@ export function useTraining() {
     if (!isRunning.value || isPaused.value) return
     isPaused.value = true
     clearTimers()
+    voice.cancel()
     splitCueActive.value = false
     setStatus('已暫停', '訓練已暫停', '點擊「繼續訓練」回到節奏', 'muted')
   }
@@ -133,6 +142,7 @@ export function useTraining() {
 
   function reset() {
     clearTimers()
+    voice.cancel()
     isRunning.value = false
     isPaused.value = false
     currentSet.value = 1
@@ -172,6 +182,7 @@ export function useTraining() {
       splitCueActive.value = false
       activeCornerId.value = target.id
       tone(523.25, 0.18, 0.4)
+      say(target.shortName)
       const advice = target.zone === 'front'
         ? '前場大跨步（Lunge）放短，揮拍後蹬地推回 T 點！'
         : target.zone === 'middle'
@@ -192,17 +203,20 @@ export function useTraining() {
 
     if (currentSet.value >= totalSets.value) {
       isRunning.value = false
+      setTimeout(() => say('訓練完成，辛苦了'), 500)
       setStatus('訓練圓滿達成！', '全套空擊訓練完成！', `共完成 ${totalSets.value} 組、${currentTotal.value} 次 T 點墊步與啟動步！`, 'green')
       return
     }
 
     let remaining = 30
+    setTimeout(() => say(`第 ${currentSet.value} 組完成，休息三十秒`), 500)
     setStatus(`第 ${currentSet.value} 組完成！`, `組間休息 ${remaining} 秒`, '深呼吸放鬆腳踝與小腿，補充水分', 'amber')
     intervalTimer = setInterval(() => {
       if (!isRunning.value || isPaused.value) return
       remaining -= 1
       if (remaining > 0) {
         setStatus(`第 ${currentSet.value} 組完成！`, `組間休息 ${remaining} 秒`, '深呼吸放鬆腳踝與小腿，補充水分', 'amber')
+        if (remaining === 10) say('還有十秒，準備')
       } else {
         clearInterval(intervalTimer)
         intervalTimer = undefined
@@ -222,6 +236,6 @@ export function useTraining() {
     corners, activeCorners, mode, pace, shotsPerSet, totalSets, splitWarning,
     soundEnabled, isRunning, isPaused, currentSet, currentShot, currentTotal,
     guideOpen, activeCornerId, splitCueActive, status, selectMode, applyPreset,
-    toggleCorner, start, pause, reset,
+    toggleCorner, start, pause, reset, voice,
   }
 }
