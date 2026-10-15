@@ -1,7 +1,7 @@
 import { onBeforeUnmount, ref } from 'vue'
 
-const MALE_HINTS = ['male', 'yunyang', 'yunxi', 'yunjian', 'yunjhe', 'kangkang', 'zhiwei', 'li-mu', 'limu', 'wanlung', 'danny']
-const FEMALE_HINTS = ['female', 'mei-jia', 'meijia', 'ting-ting', 'tingting', 'sin-ji', 'yaoyao', 'huihui', 'hanhan', 'xiaoxiao', 'xiaoyi', 'hsiaochen', 'hsiaoyu', 'yating', 'shanshan', 'google']
+const MALE_HINTS = ['male', 'yunjhe', 'zhiwei', 'li-mu', 'limu', 'yunyang', 'yunxi', 'yunjian', 'kangkang']
+const FEMALE_HINTS = ['female', 'mei-jia', 'meijia', 'hsiaochen', 'hsiaoyu', 'hanhan', 'yating', 'google', 'ting-ting', 'tingting', 'huihui', 'xiaoxiao']
 
 function isMale(voice) {
   const name = voice.name.toLowerCase()
@@ -20,9 +20,10 @@ export function useVoice() {
   function loadVoices() {
     if (!synth) return
     const all = synth.getVoices()
-    const tw = all.filter((voice) => /zh[-_](TW|HK)/i.test(voice.lang))
-    const zh = all.filter((voice) => /^(zh|cmn)/i.test(voice.lang) && !tw.includes(voice))
-    voices.value = [...tw, ...zh]
+    // 只用台灣中文語音；裝置沒有 zh-TW 時才退回其他國語語音（排除香港粵語）
+    const tw = all.filter((voice) => /^(zh|cmn)[-_](TW|Hant)/i.test(voice.lang))
+    const mandarin = all.filter((voice) => /^(zh|cmn)/i.test(voice.lang) && !/HK|yue/i.test(voice.lang))
+    voices.value = tw.length ? tw : mandarin
   }
 
   // When the device has no voice of the chosen gender, fall back to pitch shifting
@@ -40,8 +41,9 @@ export function useVoice() {
   function voiceLabel() {
     if (!supported) return '此瀏覽器不支援語音合成，僅能使用提示音'
     const { voice, exact } = pickVoice()
-    if (!voice) return '找不到中文語音，將使用系統預設語音'
-    return `使用語音：${voice.name}${exact ? '' : `（以音調模擬${gender.value === 'male' ? '男聲' : '女聲'}）`}`
+    if (!voice) return '找不到台灣中文語音，將使用系統預設語音'
+    const twNote = /TW|Hant/i.test(voice.lang) ? '' : '（裝置未安裝台灣中文語音）'
+    return `使用語音：${voice.name}${twNote}${exact ? '' : `（以音調模擬${gender.value === 'male' ? '男聲' : '女聲'}）`}`
   }
 
   function speak(text) {
@@ -51,7 +53,7 @@ export function useVoice() {
       const utterance = new SpeechSynthesisUtterance(text)
       const { voice, pitch } = pickVoice()
       if (voice) utterance.voice = voice
-      utterance.lang = voice?.lang || 'zh-TW'
+      utterance.lang = 'zh-TW'
       utterance.pitch = pitch
       utterance.rate = rate.value
       utterance.volume = volume.value
