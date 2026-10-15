@@ -1,0 +1,56 @@
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;500;600;700;800;900&family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap');
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Noto Sans TC', sans-serif;
+  --font-display: 'Barlow Semi Condensed', 'Noto Sans TC', sans-serif;
+}
+
+:root {
+  font-family: var(--font-sans);
+  color: #edf2eb;
+  background: #101613;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-optical-sizing: auto;
+}
+
+* { box-sizing: border-box; }
+body { min-width: 320px; min-height: 100vh; margin: 0; }
+button, input { font: inherit; }
+button { -webkit-tap-highlight-color: transparent; }
+
+.court-grid {
+  position: relative;
+  width: min(100%, 410px);
+  aspect-ratio: 64 / 97.5;
+  overflow: hidden;
+  border: 2px solid rgba(237, 92, 72, .85);
+  border-radius: 8px;
+  background-color: #202b28;
+  background-image: linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+  background-size: 22px 22px;
+  box-shadow: 0 24px 70px rgba(0,0,0,.35), inset 0 0 60px rgba(0,0,0,.2);
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(.85); opacity: .85; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+
+.pulse-effect::after {
+  position: absolute;
+  inset: -7px;
+  border: 2px solid #f3ca57;
+  border-radius: 999px;
+  content: '';
+  animation: pulse-ring 1s cubic-bezier(0, 0, .2, 1) infinite;
+}
+
+input[type='range'] { accent-color: #a8d96b; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
